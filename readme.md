@@ -89,3 +89,101 @@ pip install -r requirements.txt
 If you want the OpenAI-enhanced mode:
 ```bash
 export OPENAI_API_KEY=your_key_here
+
+Configuration
+The system can run in two modes:
+Basic mode (no API key, uses local retrieval only)
+OpenAI mode (requires API key, adds embeddings + LLM synthesis)
+You can configure it with environment variables or a .env file.
+Variable	Purpose
+OPENAI_API_KEY	Enables embedding + chat synthesis
+EMBEDDING_MODEL	Optional: defaults to text-embedding-ada-002
+CHAT_MODEL	Optional: defaults to gpt-3.5-turbo
+CORS_ALLOW_ORIGINS	Defaults to *
+APP_VERSION	Metadata only
+Usage
+Start the backend:
+uvicorn main:app --reload
+Once running, the service exposes:
+GET / — Service info
+GET /healthz — Liveness check
+GET /ui — Minimal built-in UI for direct questions
+POST /query/ — Main endpoint for asking questions
+Example POST payload:
+{
+  "question": "Who is the God-Emperor?",
+  "mode": "openai"
+}
+Response includes the answer, source passages, and retrieval metadata.
+Extending / Adding New Lore
+I designed Astronomicon to be expandable. To add more content:
+Drop new .txt files into the corpus directory.
+Make sure each file has clear formatting (paragraphs, sections).
+Restart the backend. If embeddings are used, the system will re-index.
+Every chunk is stored with provenance: file name, source location, and text snippet. This ensures citations stay accurate even as the corpus grows.
+Answer Generation & Citation Policy
+Answers are built on retrieved context, not speculation.
+In basic mode, answers are selected directly from best-matching chunks.
+In OpenAI mode, the LLM is instructed to only synthesize from retrieved sources.
+Each answer includes source IDs, snippets, and titles. No hallucinations. Everything can be traced back to the original document and line.
+Citation format example:
+Answer: ... [1]
+
+Sources:
+[1] Codex: Imperium — “The Astronomicon burns as a beacon...” (score 0.87)
+Evaluation & Metrics
+This is a side project, but I still wanted measurable quality.
+I assess:
+Precision@k: Are the top passages actually relevant?
+Latency: Does a query return in under 200ms (basic mode)?
+Answer quality: Does synthesis reflect source content without distortion?
+Coverage: Can it answer broad and obscure 40K questions?
+A proper test harness can be added later with known Q&A pairs.
+Development Workflow
+My workflow is simple:
+# Make a feature branch
+git checkout -b feature/x
+
+# Make changes, commit
+git add .
+git commit -m "feat: add lore chunking optimization"
+
+# Push
+git push origin feature/x
+Pull requests are welcome. Stick to focused commits. Don’t introduce lore without source attribution. Code should follow PEP8.
+Deployment (Free / No-Cost Mode)
+Astronomicon works entirely offline in basic mode, with no API keys or cloud dependencies. This makes it easy to deploy on:
+Free VPS instances (Fly.io, Railway, etc.)
+Local servers (Uvicorn)
+Containers
+To save cost:
+Avoid OpenAI mode.
+Disable re-indexing on startup.
+Use a persistent vector store if you’re embedding.
+Troubleshooting
+Q: I get no answer for a valid question
+→ Check that the corpus is loaded and split correctly. Try rephrasing the question.
+Q: OpenAI features aren’t working
+→ Verify your OPENAI_API_KEY is set and hasn’t expired. Check network access.
+Q: CORS issues from frontend
+→ Set CORS_ALLOW_ORIGINS env variable accordingly.
+Q: Slow response time
+→ Use smaller chunk sizes. Avoid rebuilding index every time you run.
+Future Work
+Things I might add if I keep working on this:
+Local embedding + LLM support (no OpenAI)
+Plugin-style loaders for other IPs (LotR, Dune, etc.)
+Conversation history / memory
+RAG + graph hybrid for tracking character relationships
+More structured citations (page numbers, line context)
+Contributing
+Contributions are welcome, but stay disciplined.
+All lore must be real, sourced, and quoted.
+Keep answers truthful and grounded.
+Follow a clean commit style (feat:, fix:, etc.)
+Don’t bloat the codebase with non-essential dependencies.
+PRs that break citation traceability will be rejected.
+License
+MIT License. You can use, modify, and share this freely.
+See the LICENSE file for full terms.
+Professor’s note: Keep your corpus versioned. When you add or remove lore, invalidate and rebuild the index. Reliability comes from repeatability, traceability, and disciplined maintenance. Astronomicon is the tool; your rigor is what makes its answers trustworthy.
